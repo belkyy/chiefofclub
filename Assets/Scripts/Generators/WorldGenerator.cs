@@ -37,7 +37,7 @@ namespace FootballManager.Generators
             return team;
         }
 
-        private static Player CreateRandomPlayer(Position pos, int teamTier, System.Random rand)
+        public static Player CreateRandomPlayer(Position pos, int teamTier, System.Random rand)
         {
             // Tier 1 takımların oyuncuları 75-90 arası, Tier 3 takımların 60-75 arası stat alır
             int baseMin = 90 - (teamTier * 10);

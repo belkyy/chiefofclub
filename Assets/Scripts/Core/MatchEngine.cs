@@ -1,15 +1,25 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace FootballManager.Core
 {
+    public enum InPossessionStyle { PasliOyna, KontrayaKalk, Gegenpress, TikiTaka, BolSut }
+    public enum OutOfPossessionStyle { KarsiPres, GerideKal, OtobusuCek, YuksekPres }
+    public enum FormationType { F4231, F352, F442, F433 }
+    public enum MatchEventType { None, Goal, Save, Offside }
+
     [Serializable]
     public class MatchLog
     {
         public int Minute;
         public string Text;
         public string CurrentScore;
+        public bool IsHomeAttack;
+        public MatchEventType EventType = MatchEventType.None;
+        public Player Attacker;
+        public Player Goalkeeper;
     }
 
     public class MatchResult
@@ -33,38 +43,17 @@ namespace FootballManager.Core
 
             for (int minute = 1; minute <= 90; minute++)
             {
-                // Taktiksel Mentelite katsayıları
-                float homeAttackModifier = GetMentalityAttackBonus(home.CurrentTactics.TeamMentality);
-                float awayAttackModifier = GetMentalityAttackBonus(away.CurrentTactics.TeamMentality);
-
-                if (rand.Next(0, 100) < 30) // Atak İhtimali
+                if (rand.Next(0, 100) < 25) // %25 Atak ihtimali
                 {
-                    // Takım güçleri + Taktik modifier hesaplanır
-                    float homePower = home.GetTeamOverall() * homeAttackModifier;
-                    float awayPower = away.GetTeamOverall() * awayAttackModifier;
-
-                    bool isHomeAttacking = rand.Next(0, (int)(homePower + awayPower)) < homePower;
+                    bool isHomeAttacking = rand.Next(0, 100) < 50;
                     Team attackingTeam = isHomeAttacking ? home : away;
                     Team defendingTeam = isHomeAttacking ? away : home;
 
                     Player attacker = attackingTeam.Squad.Find(p => p.MainPosition == Position.ST) ?? attackingTeam.Squad[0];
-                    Player goalkeeper = defendingTeam.Squad.Find(p => p.MainPosition == Position.GK) ?? defendingTeam.Squad[0];
+                    Player goalkeeper = defendingTeam.Squad[0];
 
-                    // High Press veya Offside Trap Kontrolü
-                    if (defendingTeam.CurrentTactics.OffsideTrap && rand.Next(0, 100) < 40)
-                    {
-                        result.Commentary.Add(new MatchLog
-                        {
-                            Minute = minute,
-                            Text = $"{attackingTeam.Name} atağa kalktı fakat {defendingTeam.Name} defansı harika zamanlamayla **OFSAYT** tuzağına düşürdü!",
-                            CurrentScore = $"{homeGoals} - {awayGoals}"
-                        });
-                        continue;
-                    }
-
-                    
-                    int attackPower = (int)(attacker.Shooting * Mathf.Clamp(homeAttackModifier, 0.8f, 1.15f)) + (attacker.Form / 10) + rand.Next(-10, 10);
-                    int defensePower = goalkeeper.Reflexes + (goalkeeper.Form / 10) + rand.Next(-10, 10);
+                    int attackPower = attacker.Shooting + rand.Next(-10, 10);
+                    int defensePower = goalkeeper.Reflexes + rand.Next(-10, 10);
 
                     if (attackPower > defensePower)
                     {
@@ -73,8 +62,12 @@ namespace FootballManager.Core
                         result.Commentary.Add(new MatchLog
                         {
                             Minute = minute,
-                            Text = $"<b>GOOOLL!</b> {attacker.Name} taktiğin meyvesini topluyor ve ağları havalandırıyor!",
-                            CurrentScore = $"{homeGoals} - {awayGoals}"
+                            Text = $"<b>GOOOLL!</b> {attacker.Name} harika bir şutla topu ağlara gönderdi!",
+                            CurrentScore = $"{homeGoals} - {awayGoals}",
+                            IsHomeAttack = isHomeAttacking,
+                            EventType = MatchEventType.Goal,
+                            Attacker = attacker,
+                            Goalkeeper = goalkeeper
                         });
                     }
                     else
@@ -82,8 +75,12 @@ namespace FootballManager.Core
                         result.Commentary.Add(new MatchLog
                         {
                             Minute = minute,
-                            Text = $"{attacker.Name} şutunu çekti ama kaleci {goalkeeper.Name} başarılı.",
-                            CurrentScore = $"{homeGoals} - {awayGoals}"
+                            Text = $"{attacker.Name} şutunu çekti ama kaleci {goalkeeper.Name} geçit vermedi.",
+                            CurrentScore = $"{homeGoals} - {awayGoals}",
+                            IsHomeAttack = isHomeAttacking,
+                            EventType = MatchEventType.Save,
+                            Attacker = attacker,
+                            Goalkeeper = goalkeeper
                         });
                     }
                 }
@@ -92,19 +89,6 @@ namespace FootballManager.Core
             result.HomeGoals = homeGoals;
             result.AwayGoals = awayGoals;
             return result;
-        }
-
-        private static float GetMentalityAttackBonus(Mentality mentality)
-        {
-            switch (mentality)
-            {
-                case Mentality.ParkTheBus: return 0.6f;
-                case Mentality.Defensive: return 0.8f;
-                case Mentality.Balanced: return 1.0f;
-                case Mentality.Attacking: return 1.2f;
-                case Mentality.AllOutAttack: return 1.4f;
-                default: return 1.0f;
-            }
         }
     }
 }

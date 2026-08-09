@@ -29,6 +29,12 @@ namespace FootballManager.Core
         public int Reflexes;      // Refleks
         public int Positioning;   // Pozisyon Alma
 
+        public float Stamina = 100f;       // 0 - 100 arası
+        public float MatchRating = 6.0f;   // 4.0 - 9.9 arası
+        public bool IsInjured = false;     // Sakatlık durumu
+
+        public int Overall => (Shooting + Reflexes + Form) / 3;
+
         // Oyuncunun Mevcut Genel Gücü (Overall Score)
         public int GetOverall()
         {
